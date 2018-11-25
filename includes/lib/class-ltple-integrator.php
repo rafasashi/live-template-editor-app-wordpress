@@ -28,7 +28,7 @@ class LTPLE_Integrator_Wordpress {
 			
 			$wpcom_consumer_key 	= array_search('wpcom_consumer_key', $parameters['key']);
 			$wpcom_consumer_secret 	= array_search('wpcom_consumer_secret', $parameters['key']);
-			$wpcom_oauth_callback 	= $this->parent->urls->editor;
+			$wpcom_oauth_callback 	= $this->parent->urls->apps;
 
 			if( !empty($parameters['value'][$wpcom_consumer_key]) && !empty($parameters['value'][$wpcom_consumer_secret]) ){
 			
@@ -253,9 +253,12 @@ class LTPLE_Integrator_Wordpress {
 						exit;
 					}
 					
-					//flush session
-					session_destroy();					
-					
+					if(!empty($_SESSION)){
+							
+						//flush session
+							
+						$_SESSION = array();			
+					}
 					//store access_token in session					
 					$_SESSION['access_token'] = $this->access_token;
 
@@ -306,10 +309,11 @@ class LTPLE_Integrator_Wordpress {
 							
 					$_SESSION['message'] .= '</div>';
 				}
-				else{
-					
+				elseif(!empty($_SESSION)){
+						
 					//flush session
-					session_destroy();					
+						
+					$_SESSION = array();			
 				}
 				
 				// redirect request
