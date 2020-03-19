@@ -15,7 +15,9 @@ class LTPLE_Integrator_Wordpress {
 		
 		$this->parent 		= $parent;
 		$this->parent->apps = $apps;
-
+		
+		$this->vendor = trailingslashit( WP_PLUGIN_DIR ) . 'live-template-editor-app-wordpress/vendor';		
+		
 		// get app term
 
 		$this->term = get_term_by('slug',$app_slug,'app-type');
@@ -36,7 +38,7 @@ class LTPLE_Integrator_Wordpress {
 				define('CONSUMER_SECRET', 	$parameters['value'][$wpcom_consumer_secret]);
 				define('OAUTH_CALLBACK', 	$wpcom_oauth_callback);
 				
-				include( $this->parent->vendor . '/wp-rest-php-lib/src/wpcom.php' );
+				include( $this->vendor . '/wp-rest-php-lib/src/wpcom.php' );
 				
 				//Set client
 				$this->client = new WPCOM_REST_Client;
@@ -72,6 +74,10 @@ class LTPLE_Integrator_Wordpress {
 				$_SESSION['message'] .= '</div>';				
 			}
 		}
+	}
+	
+	public function init_app(){	
+		
 	}
 	
 	public function appImportImg(){

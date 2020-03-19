@@ -31,7 +31,6 @@ class LTPLE_App_Wordpress {
 		$this->file 		= $file;
 		$this->dir 			= dirname( $this->file );
 		$this->views   		= trailingslashit( $this->dir ) . 'views';
-		$this->vendor  		= trailingslashit( $this->dir ) . 'vendor';
 		$this->assets_dir 	= trailingslashit( $this->dir ) . 'assets';
 		$this->assets_url 	= esc_url( trailingslashit( plugins_url( '/assets/', $this->file ) ) );
 		
@@ -130,16 +129,15 @@ class LTPLE_App_Wordpress {
 		return $template_path;
 	}
 	
+	public function get_triggers(){
 		
-		public function get_triggers(){
-			
-			$this->parent->stars->triggers['connected apps']['ltple_wordpress_image_uploaded'] = array(
-					
-				'description' => 'when you upload a new image on an image host'
-			);
-			
-			return true;
-		}
+		$this->parent->stars->triggers['connected apps']['ltple_wordpress_image_uploaded'] = array(
+				
+			'description' => 'when you upload a new image on an image host'
+		);
+		
+		return true;
+	}
 	
 	public function init_app(){	
 		
