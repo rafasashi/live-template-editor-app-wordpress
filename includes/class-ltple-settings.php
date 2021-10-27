@@ -45,7 +45,7 @@ class LTPLE_App_Wordpress_Settings {
 		
 		add_action('ltple_plugin_settings', array($this, 'plugin_info' ) );
 		
-		add_action('ltple_plugin_settings', array($this, 'settings_fields' ) );
+		add_action('ltple_settings_fields', array($this, 'settings_fields' ) );
 		
 		add_action( 'ltple_admin_menu' , array( $this, 'add_menu_items' ) );	
 	}
@@ -68,9 +68,7 @@ class LTPLE_App_Wordpress_Settings {
 	 * Build settings fields
 	 * @return array Fields to be displayed on settings page
 	 */
-	public function settings_fields () {
-		
-		$settings = [];
+	public function settings_fields ($settings) {
 		
 		$settings['wordpress'] = array(
 			'title'					=> __( 'Wordpress', $this->plugin->slug ),
@@ -86,22 +84,7 @@ class LTPLE_App_Wordpress_Settings {
 			)
 		);		
 		
-		if( !empty($settings) ){
-		
-			foreach( $settings as $slug => $data ){
-				
-				if( isset($this->parent->settings->settings[$slug]['fields']) && !empty($data['fields']) ){
-					
-					$fields = $this->parent->settings->settings[$slug]['fields'];
-					
-					$this->parent->settings->settings[$slug]['fields'] = array_merge($fields,$data['fields']);
-				}
-				else{
-					
-					$this->parent->settings->settings[$slug] = $data;
-				}
-			}
-		}
+		return $settings;
 	}
 	
 	/**
