@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Name: Live Template Editor App Wordpress
- * Version: 1.0.0.3
+ * Version: 1.0.0.4
  * Plugin URI: https://github.com/rafasashi
  * Description: Wordpress.com API integrator for Live Template Editor.
  * Author: Rafasashi

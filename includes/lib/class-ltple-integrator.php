@@ -198,18 +198,17 @@ class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 		
 		if( isset($_REQUEST['action']) ){
 			
-			if( !$this->parent->session->get_user_data('access_token') ){
+			$this->reset_session();
+			
+			$this->parent->session->update_user_data('app','wordpress');
+			$this->parent->session->update_user_data('action',$_REQUEST['action']);
+			$this->parent->session->update_user_data('ref',$this->get_ref_url());
+			
+			$this->oauth_url = $this->client->get_blog_auth_url( '', OAUTH_CALLBACK, [] );
 
-				$this->parent->session->update_user_data('app','wordpress');
-				$this->parent->session->update_user_data('action',$_REQUEST['action']);
-				$this->parent->session->update_user_data('ref',$this->get_ref_url());
-				
-				$this->oauth_url = $this->client->get_blog_auth_url( '', OAUTH_CALLBACK, [] );
-
-				wp_redirect($this->oauth_url);
-				echo 'Redirecting wordpress oauth...';
-				exit;	
-			}			
+			wp_redirect($this->oauth_url);
+			echo 'Redirecting wordpress oauth...';
+			exit;		
 		}
 		elseif( !$this->parent->session->get_user_data('access_token') ){
 				
