@@ -2,40 +2,25 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-class LTPLE_Integrator_Wordpress {
-	
-	var $parent;
-	var $apps;
-	var $action;
+class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 	
 	/**
 	 * Constructor function
 	 */
-	public function __construct ( $app_slug, $parent, $apps ) {
+	public function init_app() {
 		
-		$this->parent 		= $parent;
-		$this->parent->apps = $apps;
-		
-		$this->vendor = trailingslashit( WP_PLUGIN_DIR ) . 'live-template-editor-app-wordpress/vendor';		
-		
-		// get app term
+		$this->vendor = $this->parent->App_Wordpress->vendor;		
 
-		$this->term = get_term_by('slug',$app_slug,'app-type');
-		
-		// get app parameters
-		
-		$parameters = get_option('parameters_'.$app_slug);
-		
-		if( isset($parameters['key']) ){
+		if( isset($this->parameters['key']) ){
 			
-			$wpcom_consumer_key 	= array_search('wpcom_consumer_key', $parameters['key']);
-			$wpcom_consumer_secret 	= array_search('wpcom_consumer_secret', $parameters['key']);
+			$wpcom_consumer_key 	= array_search('wpcom_consumer_key', $this->parameters['key']);
+			$wpcom_consumer_secret 	= array_search('wpcom_consumer_secret', $this->parameters['key']);
 			$wpcom_oauth_callback 	= $this->parent->urls->apps;
 
-			if( !empty($parameters['value'][$wpcom_consumer_key]) && !empty($parameters['value'][$wpcom_consumer_secret]) ){
+			if( !empty($this->parameters['value'][$wpcom_consumer_key]) && !empty($this->parameters['value'][$wpcom_consumer_secret]) ){
 			
-				define('CONSUMER_KEY', 		$parameters['value'][$wpcom_consumer_key]);
-				define('CONSUMER_SECRET', 	$parameters['value'][$wpcom_consumer_secret]);
+				define('CONSUMER_KEY', 		$this->parameters['value'][$wpcom_consumer_key]);
+				define('CONSUMER_SECRET', 	$this->parameters['value'][$wpcom_consumer_secret]);
 				define('OAUTH_CALLBACK', 	$wpcom_oauth_callback);
 				
 				include( $this->vendor . '/wp-rest-php-lib/src/wpcom.php' );
@@ -46,14 +31,7 @@ class LTPLE_Integrator_Wordpress {
 
 				// get current action
 				
-				if(!empty($_REQUEST['action'])){
-					
-					$this->action = $_REQUEST['action'];
-				}
-				elseif(!empty($_SESSION['action'])){
-					
-					$this->action = $_SESSION['action'];
-				}
+				$this->action = $this->get_current_action();
 				
 				if( !empty($this->action) ){
 				
@@ -67,17 +45,15 @@ class LTPLE_Integrator_Wordpress {
 			}
 			else{
 				
-				$_SESSION['message'] = '<div class="alert alert-danger">';
+				$message = '<div class="alert alert-danger">';
 					
-					$_SESSION['message'] .= 'Sorry, wordpress is not available on this platform yet, please contact the dev team...';
+					$message .= 'Sorry, wordpress is not yet available on this platform, please contact the dev team...';
 						
-				$_SESSION['message'] .= '</div>';				
+				$message .= '</div>';	
+
+				$this->parent->session->update_user_data('message',$message);
 			}
 		}
-	}
-	
-	public function init_app(){	
-		
 	}
 	
 	public function appImportImg(){
@@ -128,10 +104,6 @@ class LTPLE_Integrator_Wordpress {
 						}
 					}
 				}
-				
-				//echo '<pre>';
-				//var_dump($posts);
-				//exit;
 			}
 		}
 	}
@@ -169,9 +141,9 @@ class LTPLE_Integrator_Wordpress {
 				foreach($post_data->attachments as $image){
 					
 					$img_url	= $image->URL;
-					$img_title	= $_SESSION['file'];
+					$img_title	= $this->parent->session->get_user_data('file');
 					
-					if(!get_page_by_title( $img_title, OBJECT, 'user-image' )){
+					if( !get_page_by_title( $img_title, OBJECT, 'user-image' ) ){
 						
 						if($image_id = wp_insert_post(array(
 					
@@ -226,11 +198,11 @@ class LTPLE_Integrator_Wordpress {
 		
 		if( isset($_REQUEST['action']) ){
 			
-			if(!isset($_SESSION['token'])){
+			if( !$this->parent->session->get_user_data('access_token') ){
 
-				$_SESSION['app'] 				= 'wordpress';
-				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['ref'] 				= ( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : '');
+				$this->parent->session->update_user_data('app','wordpress');
+				$this->parent->session->update_user_data('action',$_REQUEST['action']);
+				$this->parent->session->update_user_data('ref',$this->get_ref_url());
 				
 				$this->oauth_url = $this->client->get_blog_auth_url( '', OAUTH_CALLBACK, [] );
 
@@ -239,93 +211,89 @@ class LTPLE_Integrator_Wordpress {
 				exit;	
 			}			
 		}
-		elseif( isset($_SESSION['action']) ){
+		elseif( !$this->parent->session->get_user_data('access_token') ){
+				
+			// handle connect callback
 			
-			if(!isset($_SESSION['access_token'])){
+			if(isset($_REQUEST['code'])){
 				
-				// handle connect callback
+				//get access_token
 				
-				if(isset($_REQUEST['code'])){
+				try {
 					
-					//get access_token
-					
-					try {
-						
-						$this->access_token = $this->client->request_access_token( $_REQUEST['code'], OAUTH_CALLBACK );
-					} 
-					catch ( WP_REST_Exception $e ) {
+					$this->access_token = $this->client->request_access_token( $_REQUEST['code'], OAUTH_CALLBACK );
+				} 
+				catch ( WP_REST_Exception $e ) {
 
-						var_dump($e);
-						exit;
-					}
-					
-					if(!empty($_SESSION)){
-							
-						//flush session
-							
-						$_SESSION = array();			
-					}
-					//store access_token in session					
-					$_SESSION['access_token'] = $this->access_token;
-
-					// get blog name	
-					
-					$blog_name = str_replace(array('http://','https://','.wordpress.com'),'',$this->access_token->blog_url);
-
-					// store access_token in database		
-					
-					$app_title = wp_strip_all_tags( 'wordpress - ' . $blog_name );
-					
-					$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
-					
-					if( empty($app_item) ){
-						
-						// create app item
-						
-						$app_id = wp_insert_post(array(
-						
-							'post_title'   	 	=> $app_title,
-							'post_status'   	=> 'publish',
-							'post_type'  	 	=> 'user-app',
-							'post_author'   	=> $this->parent->user->ID
-						));
-						
-						wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
-
-						// hook connected app
-							
-						do_action( 'ltple_wordpress_account_connected');		
-
-						$this->parent->apps->newAppConnected();
-					}
-					else{
-
-						$app_id = $app_item->ID;
-					}
-						
-					// update app item
-						
-					update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
-
-					// store success message
-
-					$_SESSION['message'] = '<div class="alert alert-success">';
-						
-						$_SESSION['message'] .= 'Congratulations, you have successfully connected a Wordpress account!';
-							
-					$_SESSION['message'] .= '</div>';
-				}
-				elseif(!empty($_SESSION)){
-						
-					//flush session
-						
-					$_SESSION = array();			
+					var_dump($e);
+					exit;
 				}
 				
-				// redirect request
-					 
-				$this->parent->apps->redirectApp();				
+				$this->reset_session();
+			
+				//store access_token in session					
+
+				$this->parent->session->update_user_data('access_token',$this->access_token);
+
+				// get blog name	
+				
+				$blog_name = str_replace(array('http://','https://','.wordpress.com'),'',$this->access_token->blog_url);
+
+				// store access_token in database		
+				
+				$app_title = wp_strip_all_tags( 'wordpress - ' . $blog_name );
+				
+				$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
+				
+				if( empty($app_item) ){
+					
+					// create app item
+					
+					$app_id = wp_insert_post(array(
+					
+						'post_title'   	 	=> $app_title,
+						'post_status'   	=> 'publish',
+						'post_type'  	 	=> 'user-app',
+						'post_author'   	=> $this->parent->user->ID
+					));
+					
+					wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
+
+					// hook connected app
+						
+					do_action( 'ltple_wordpress_account_connected');		
+
+					$this->parent->apps->newAppConnected();
+				}
+				else{
+
+					$app_id = $app_item->ID;
+				}
+					
+				// update app item
+					
+				update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
+
+				// store success message
+
+				$message = '<div class="alert alert-success">';
+					
+					$message .= 'Congratulations, you have successfully connected a Wordpress account!';
+						
+				$message .= '</div>';
+				
+				$this->parent->session->update_user_data('message',$message);
 			}
+			else{
+					
+				//flush session
+					
+				$this->reset_session();		
+			}
+			
+			// redirect request
+				 
+			$this->parent->apps->redirectApp();				
 		}
 	}
 
@@ -374,4 +342,15 @@ class LTPLE_Integrator_Wordpress {
 
 		return false;
 	}
+	
+	public function reset_session(){
+		
+		$this->parent->session->update_user_data('app','');
+		$this->parent->session->update_user_data('action','');
+		$this->parent->session->update_user_data('access_token','');
+		$this->parent->session->update_user_data('file','');
+		$this->parent->session->update_user_data('ref',$this->get_ref_url());		
+		
+		return true;
+	}	
 } 
