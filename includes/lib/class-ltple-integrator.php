@@ -29,18 +29,11 @@ class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 				$this->client = new WPCOM_REST_Client;
 				$this->client->set_auth_key( CONSUMER_KEY, CONSUMER_SECRET );
 
-				// get current action
+				// init action
+		
+				if( $action = $this->get_current_action() ){
 				
-				$this->action = $this->get_current_action();
-				
-				if( !empty($this->action) ){
-				
-					$methodName = 'app'.ucfirst($this->action);
-
-					if(method_exists($this,$methodName)){
-						
-						$this->$methodName();
-					}
+					$this->init_action($action);
 				}
 			}
 			else{
@@ -200,7 +193,7 @@ class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 			
 			$this->reset_session();
 			
-			$this->parent->session->update_user_data('app','wordpress');
+			$this->parent->session->update_user_data('app',$this->app_slug);
 			$this->parent->session->update_user_data('action',$_REQUEST['action']);
 			$this->parent->session->update_user_data('ref',$this->get_ref_url());
 			
@@ -288,11 +281,7 @@ class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 				//flush session
 					
 				$this->reset_session();		
-			}
-			
-			// redirect request
-				 
-			$this->parent->apps->redirectApp();				
+			}			
 		}
 	}
 
