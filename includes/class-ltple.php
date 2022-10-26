@@ -76,8 +76,6 @@ class LTPLE_App_Wordpress extends LTPLE_Client_App {
 		
 		//init profiler 
 		
-		add_action( 'init', array( $this, 'init_app' ));
-
 		add_action( 'admin_init', array( $this, 'admin_init_app' ));		
 
 		// Custom editor template
@@ -138,11 +136,6 @@ class LTPLE_App_Wordpress extends LTPLE_Client_App {
 		);
 		
 		return true;
-	}
-	
-	public function init_app(){	
-		
-
 	}
 	
 	public function admin_init_app(){	

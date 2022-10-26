@@ -28,13 +28,6 @@ class LTPLE_Integrator_Wordpress extends LTPLE_Client_Integrator {
 				//Set client
 				$this->client = new WPCOM_REST_Client;
 				$this->client->set_auth_key( CONSUMER_KEY, CONSUMER_SECRET );
-
-				// init action
-		
-				if( $action = $this->get_current_action() ){
-				
-					$this->init_action($action);
-				}
 			}
 			else{
 				
